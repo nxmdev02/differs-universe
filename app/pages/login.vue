@@ -66,7 +66,6 @@ const atmospherePaused = ref(false)
       </p>
       <span class="auth-private">Access is limited to approved Google accounts.</span>
     </div>
-    <footer class="auth-footer">A space for everything you’re making.</footer>
   </section>
 </template>
 <style scoped>
@@ -198,12 +197,6 @@ const atmospherePaused = ref(false)
   font-size: 10px;
   color: var(--theme-muted, #7c928b);
 }
-.auth-footer {
-  position: relative;
-  margin-top: 70px;
-  font-size: 10px;
-  color: var(--theme-muted, #596d67);
-}
 @media (prefers-reduced-motion: no-preference) {
   .auth-card {
     animation: auth-arrive 0.65s ease-out both;
@@ -240,8 +233,7 @@ const atmospherePaused = ref(false)
     font-size: 14px;
     line-height: 1.7;
   }
-  .auth-private,
-  .auth-footer {
+  .auth-private {
     font-size: 12px;
     line-height: 1.6;
   }
@@ -254,9 +246,6 @@ const atmospherePaused = ref(false)
     top: max(24px, env(safe-area-inset-top));
   }
   .auth-scene {
-    margin-top: 45px;
-  }
-  .auth-footer {
     margin-top: 45px;
   }
 }
