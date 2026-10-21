@@ -1,0 +1,35 @@
+import { defineConfig } from '@playwright/test'
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: false,
+  workers: 1,
+  retries: 0,
+  timeout: 45000,
+  use: {
+    baseURL: 'http://127.0.0.1:3100',
+    viewport: { width: 1440, height: 1000 },
+    reducedMotion: 'reduce',
+    launchOptions: { args: ['--enable-unsafe-swiftshader'] },
+    trace: 'retain-on-failure',
+  },
+  webServer: {
+    command: 'npm run dev -- --host=127.0.0.1 --port=3100',
+    url: 'http://127.0.0.1:3100',
+    env: {
+      DATA_MODE: 'mock',
+      VERCEL_TOKEN: '',
+      GITHUB_TOKEN: '',
+      DASHBOARD_PASSWORD: '',
+      AUTH_MODE: 'auto',
+      GOOGLE_CLIENT_ID: '',
+      GOOGLE_CLIENT_SECRET: '',
+      NUXT_AUTH_MODE: 'auto',
+      NUXT_GOOGLE_CLIENT_ID: '',
+      NUXT_GOOGLE_CLIENT_SECRET: '',
+      NUXT_IGNORE_LOCK: '1',
+      NUXT_TEST_BUILD_DIR: '.nuxt-e2e',
+    },
+    reuseExistingServer: false,
+    timeout: 120000,
+  },
+})

@@ -1,0 +1,12 @@
+node_modules
+.nuxt
+.nuxt-e2e
+.output
+.nitro
+.data
+.cache
+artifacts
+test-results
+playwright-report
+package-lock.json
+.audit-report.json
