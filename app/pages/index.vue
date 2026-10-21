@@ -25,9 +25,6 @@ const query = ref('')
 const statusFilter = ref<DeployStatus | 'ALL'>('ALL')
 const metric = ref<Metric>('dau')
 const assignments = computed(() => solarAssignments(projects.value, metric.value))
-const moonCount = computed(
-  () => Object.values(assignments.value).filter((body) => body.kind === 'moon').length,
-)
 const selectedId = ref<string | null>(null)
 const view = ref<'universe' | 'projects'>('universe')
 const paused = ref(false)
@@ -390,11 +387,7 @@ onBeforeUnmount(() => {
                 <EventHorizon class="universe-horizon" :paused="paused || settingsOpen" flyby />
                 <ObservatoryFrame />
                 <div class="scene-caption">
-                  <span class="coordinate-mark">+</span><span>EARTH · HOME SYSTEM</span
-                  ><span
-                    >{{ projects.length - cometCount - moonCount }} planets · {{ moonCount }} moons
-                    · {{ cometCount }} comets</span
-                  >
+                  <span>{{ projects.length - cometCount }} planets · {{ cometCount }} comets</span>
                   <span
                     :title="
                       metric === 'deployments'

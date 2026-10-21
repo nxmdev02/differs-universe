@@ -822,19 +822,12 @@ main {
   letter-spacing: 1.7px;
   color: var(--theme-accent, #8ca294);
   display: grid;
-  grid-template-columns: 12px max-content;
+  grid-template-columns: max-content;
   align-items: center;
   gap: 8px;
 }
-.coordinate-mark {
-  font-size: 18px;
-  font-weight: 200;
-  color: var(--theme-accent, #55776b);
-  line-height: 10px;
-}
-.scene-caption > span:nth-child(n + 3) {
+.scene-caption > span {
   display: block;
-  grid-column: 2;
   letter-spacing: 0.4px;
   font-size: 8px;
   color: var(--theme-accent, #536d65);
@@ -2122,7 +2115,7 @@ a.domain-link:hover {
     font-size: 10px;
     letter-spacing: 1px;
   }
-  .scene-caption > span:nth-child(n + 3) {
+  .scene-caption > span {
     font-size: 10px;
     line-height: 1.4;
     letter-spacing: 0;
