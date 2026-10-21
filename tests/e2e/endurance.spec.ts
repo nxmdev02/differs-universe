@@ -8,6 +8,7 @@ test('the flyby moves and rotates, respects pause and settings, and stops with r
   await expect(page.locator('.planet-target')).toHaveCount(8)
   const flight = page.locator('.endurance-flight')
   const spin = page.locator('.endurance-spin')
+  const bank = page.locator('.endurance-bank')
   await expect(flight).toHaveCount(1)
   const transform = () => flight.evaluate((el) => getComputedStyle(el).transform)
   const first = await transform()
@@ -15,6 +16,7 @@ test('the flyby moves and rotates, respects pause and settings, and stops with r
   await page.getByRole('button', { name: 'Pause orbit', exact: true }).click()
   await expect(flight).toHaveCSS('animation-play-state', 'paused')
   await expect(spin).toHaveCSS('animation-play-state', 'paused')
+  await expect(bank).toHaveCSS('animation-play-state', 'paused')
   const paused = await transform()
   const rotation = await spin.evaluate((el) => getComputedStyle(el).transform)
   await page.waitForTimeout(350)
@@ -39,6 +41,7 @@ test('the flyby moves and rotates, respects pause and settings, and stops with r
   await page.emulateMedia({ reducedMotion: 'reduce' })
   await expect(flight).toHaveCSS('animation-name', 'none')
   await expect(spin).toHaveCSS('animation-name', 'none')
+  await expect(bank).toHaveCSS('animation-name', 'none')
   await expect(flight).toHaveCSS('opacity', '1')
   await expect(page.locator('.earth-target > span')).toHaveText('EARTH')
   await expect(page.locator('.field-title')).toHaveCount(0)
@@ -78,6 +81,11 @@ for (const mobile of [false, true]) {
       animation.pause()
       animation.currentTime = 3000
     })
+    await page.locator('.endurance-bank').evaluate((el) => {
+      const animation = el.getAnimations()[0]!
+      animation.pause()
+      animation.currentTime = 8000
+    })
     await expect(page.locator('.endurance')).toHaveCSS('pointer-events', 'none')
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
     await page.locator('.universe-stage').screenshot({
@@ -89,6 +97,21 @@ for (const mobile of [false, true]) {
     await page.locator('.universe-stage').screenshot({
       path: `artifacts/endurance-${mobile ? 'mobile' : 'desktop'}-light.png`,
     })
+    if (!mobile) {
+      // Inspect the actual shared SVG at a readable scale, without adding a preview to the app.
+      await page.locator('.endurance-hull').evaluate((hull) => {
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        svg.id = 'hull-review'
+        svg.setAttribute('viewBox', '-55 -55 110 110')
+        svg.setAttribute('fill', 'none')
+        svg.style.cssText =
+          'position:fixed;inset:0;width:440px;height:440px;background:#101923;z-index:9999'
+        svg.append(hull.cloneNode(true))
+        document.body.append(svg)
+      })
+      await page.locator('#hull-review').screenshot({ path: 'artifacts/endurance-hull-detail.png' })
+      await page.locator('#hull-review').evaluate((el) => el.remove())
+    }
     expect(errors).toEqual([])
   })
 }

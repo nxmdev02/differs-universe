@@ -111,7 +111,13 @@ defineExpose({ follow, resetPointer })
       <div class="login-orbit" aria-hidden="true" />
       <div class="login-orbit outer" aria-hidden="true" />
       <span ref="satellite" class="login-satellite" aria-hidden="true"><i /></span>
-      <span ref="distantSatellite" class="login-satellite distant" aria-hidden="true"><i /></span>
+      <span ref="distantSatellite" class="login-satellite distant" aria-hidden="true">
+        <svg viewBox="-50 -50 100 100" fill="none" focusable="false">
+          <g transform="rotate(-20) scale(.8 1)">
+            <g class="login-endurance-spin"><EnduranceHull /></g>
+          </g>
+        </svg>
+      </span>
       <button
         class="login-earth"
         aria-label="Send a signal from Earth"
@@ -237,19 +243,18 @@ defineExpose({ follow, resetPointer })
   background: radial-gradient(circle at 30% 25%, #e4f3ed, #8fb9a7 35%, #26483e 80%);
   box-shadow: 0 0 14px #a2dfc33a;
 }
-.login-satellite.distant i {
-  width: 21px;
-  height: 21px;
-  left: -10.5px;
-  top: -10.5px;
-  background: repeating-conic-gradient(
-    #c8c9c5 0deg 20deg,
-    #59626a 20deg 22deg,
-    transparent 22deg 30deg
-  );
-  mask-image: radial-gradient(circle, transparent 0 39%, #000 42% 70%, transparent 73%);
+.login-satellite.distant svg {
+  display: block;
+  position: absolute;
+  width: 34px;
+  height: 34px;
+  left: -17px;
+  top: -17px;
+  overflow: visible;
+}
+.login-endurance-spin {
+  transform-origin: 0 0;
   transform: rotate(var(--station-spin, 0deg));
-  box-shadow: none;
 }
 .signal-ring {
   position: absolute;
