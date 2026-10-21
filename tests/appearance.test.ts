@@ -5,6 +5,9 @@ import {
   projectAppearance,
   projectSiteUrl,
   solarAssignments,
+  visitorGlow,
+  recentDeploymentKey,
+  sortProjectsByTraffic,
   SOLAR_BODIES,
 } from '../shared/utils/project-appearance'
 import { mockProjects } from '../server/services/mock'
@@ -25,59 +28,119 @@ test('comets start exactly at 90 days and a newer commit keeps a project active'
   assert.equal(projectActivity(project, now).dormant, false)
 })
 
-test('metric ranking fills the eight solar bodies, then moons; dormant projects stay comets', () => {
+test('DAU assigns descending solar sizes; quiet and unmeasured projects use latest activity', () => {
   const now = Date.parse('2026-10-21T12:00:00Z')
-  const template = mockProjects()[0]!
-  const projects = Array.from({ length: 11 }, (_, index) => {
-    const project = structuredClone(template)
-    project.id = `rank-${index}`
-    project.analytics.dau = 1000 - index * 50
-    project.analytics.mau = index * 100 + 1
-    project.deployment.createdAt = new Date(now).toISOString()
-    project.github = null
-    return project
-  })
-  projects[10]!.deployment.createdAt = new Date(now - 91 * 86400000).toISOString()
-  const mapped = solarAssignments(projects, 'dau', now)
-  assert.deepEqual(
-    projects.slice(0, 8).map((p) => mapped[p.id]!.kind),
-    SOLAR_BODIES.map((body) => body.kind),
-  )
-  assert.equal(mapped['rank-8']!.kind, 'moon')
-  assert.equal(mapped['rank-9']!.kind, 'moon')
-  assert.equal(mapped['rank-10']!.kind, 'comet')
-  assert.equal(solarAssignments(projects, 'mau', now)['rank-9']!.kind, 'jupiter')
-  assert.deepEqual(solarAssignments([...projects].reverse(), 'dau', now), mapped)
-  projects[0]!.deployments30d.available = false
-  assert.equal(solarAssignments(projects, 'deployments', now)['rank-0']!.kind, 'moon')
-  projects[0]!.analytics.dau = 0
-  assert.equal(solarAssignments(projects, 'dau', now)['rank-0']!.kind, 'moon')
-})
-
-test('zero and missing metrics keep the eight solar identities; only additional projects become moons', () => {
-  const now = Date.parse('2026-10-21T12:00:00Z')
-  const projects = mockProjects().map((project, index) => ({
-    ...project,
-    id: `quiet-${index}`,
+  const projects = Array.from({ length: 11 }, (_, index) => ({
+    ...structuredClone(mockProjects()[0]!),
+    id: `rank-${index}`,
+    name: `project-${index}`,
     github: null,
-    deployment: { ...project.deployment, createdAt: new Date(now).toISOString() },
-    analytics: { ...project.analytics, dau: 0 },
+    deployment: {
+      status: 'READY' as const,
+      url: null,
+      createdAt: new Date(now - index * 86400000).toISOString() as string | null,
+    },
+    analytics: {
+      source: 'real' as const,
+      dau: index === 0 ? null : index === 1 ? 5 : index === 2 ? 10 : 0,
+      mau: index * 100,
+      growthRate: null,
+    },
   }))
-  const zero = solarAssignments(projects, 'dau', now)
+  projects[9]!.deployment.createdAt = null
+  projects[10]!.deployment.createdAt = new Date(now - 91 * 86400000).toISOString()
   assert.deepEqual(
-    projects.map((project) => zero[project.id]!.kind),
-    SOLAR_BODIES.map((body) => body.kind),
+    sortProjectsByTraffic(projects).map((p) => p.id),
+    [2, 1, 0, 3, 4, 5, 6, 7, 8, 10, 9].map((i) => `rank-${i}`),
   )
-  assert.deepEqual(solarAssignments([...projects].reverse(), 'dau', now), zero)
-  const missing = { ...projects[0]!, analytics: { ...projects[0]!.analytics, dau: null } }
-  const mixed = solarAssignments([missing, ...projects.slice(1)], 'dau', now)
-  assert.equal(mixed[missing.id]!.kind, 'pluto')
-  assert.equal(mixed[missing.id]!.rank, null)
-  assert.equal(mixed[projects[1]!.id]!.kind, 'jupiter')
-  const extra = { ...projects[0]!, id: 'quiet-9' }
-  assert.equal(solarAssignments([...projects, extra], 'dau', now)[extra.id]!.kind, 'moon')
+  const original = solarAssignments(projects, 'dau', now)
+  assert.deepEqual(
+    [2, 1, 0, 3, 4, 5, 6, 7].map((i) => original[`rank-${i}`]!.kind),
+    SOLAR_BODIES.map((b) => b.kind),
+  )
+  assert.equal(original['rank-0']!.rank, null)
+  assert.equal(original['rank-8']!.kind, 'pluto')
+  assert.equal(original['rank-9']!.kind, 'pluto')
+  assert.equal(original['rank-10']!.kind, 'comet')
+  for (const metric of ['dau', 'mau', 'deployments'] as const) {
+    const mapped = solarAssignments([...projects].reverse(), metric, now)
+    for (const project of projects) {
+      assert.deepEqual(
+        { ...mapped[project.id], rank: null },
+        { ...original[project.id], rank: null },
+      )
+    }
+  }
+  projects[0]!.analytics.dau = 20
+  assert.equal(solarAssignments(projects, 'dau', now)['rank-0']!.kind, 'jupiter')
+  projects[10]!.deployment.createdAt = new Date(now).toISOString()
+  assert.notEqual(solarAssignments(projects, 'dau', now)['rank-10']!.kind, 'comet')
 })
 
+test('zero traffic uses newest deployment or commit; missing dates sort last and ties are stable', () => {
+  const projects = mockProjects()
+    .slice(0, 4)
+    .map((project, index) => ({
+      ...project,
+      name: `project-${index}`,
+      github: null as typeof project.github,
+      analytics: { ...project.analytics, dau: index === 0 ? null : 0 },
+      deployment: {
+        ...project.deployment,
+        createdAt: index === 3 ? null : `2026-10-${20 - index}T12:00:00Z`,
+      },
+    }))
+  projects[2]!.github = { ...mockProjects()[0]!.github!, lastCommitAt: '2026-10-21T12:00:00Z' }
+  assert.deepEqual(
+    sortProjectsByTraffic(projects).map((p) => p.id),
+    [2, 0, 1, 3].map((i) => projects[i]!.id),
+  )
+  assert.deepEqual(sortProjectsByTraffic([...projects].reverse()), sortProjectsByTraffic(projects))
+  for (const project of projects) {
+    project.deployment.createdAt = 'invalid'
+    project.github = null
+  }
+  assert.deepEqual(
+    sortProjectsByTraffic([...projects].reverse()).map((p) => p.name),
+    projects.map((p) => p.name),
+  )
+  assert.equal(projects[0]!.analytics.dau, null)
+})
+test('traffic glow is absolute, bounded and distinct from missing analytics', () => {
+  const project = structuredClone(mockProjects()[0]!)
+  const levels = [0, 1, 5, 50, 1000, 100000].map((value) => {
+    project.analytics.dau = value
+    return visitorGlow(project, 'dau')!
+  })
+  assert.equal(levels[0], 0)
+  assert.ok(levels[1]! > 0 && levels[1]! < 0.2)
+  assert.ok(levels[2]! > levels[1]! && levels[3]! > levels[2]!)
+  assert.equal(levels[4], 1)
+  assert.equal(levels[5], 1)
+  project.analytics.dau = null
+  assert.equal(visitorGlow(project, 'dau'), null)
+  assert.equal(visitorGlow(project, 'deployments'), null)
+  project.analytics.mau = 5
+  assert.equal(visitorGlow(project, 'mau'), levels[2])
+})
+
+test('deployment signals only identify successful deployments within the last 24 hours', () => {
+  const project = structuredClone(mockProjects()[0]!)
+  const now = Date.parse('2026-10-21T12:00:00Z')
+  project.deployment = {
+    status: 'READY',
+    url: 'https://example.com',
+    createdAt: new Date(now).toISOString(),
+  }
+  assert.ok(recentDeploymentKey(project, now))
+  assert.equal(recentDeploymentKey(project, now - 1), null)
+  assert.equal(recentDeploymentKey(project, now + 86400000), null)
+  project.deployment.status = 'BUILDING'
+  assert.equal(recentDeploymentKey(project, now), null)
+  project.deployment.status = 'READY'
+  project.deployment.createdAt = 'invalid'
+  assert.equal(recentDeploymentKey(project, now), null)
+})
 test('production links prefer custom domains and never link demo or preview deployments', () => {
   const project = structuredClone(mockProjects()[0]!)
   assert.equal(projectSiteUrl(project), undefined)

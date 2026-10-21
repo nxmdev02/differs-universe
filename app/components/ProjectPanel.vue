@@ -58,7 +58,6 @@ onMounted(() => {
       </button>
     </div>
     <div class="project-identity">
-      <div class="project-avatar">{{ current.name.slice(0, 1) }}<span /></div>
       <div>
         <h2>{{ current.name }}</h2>
         <span class="muted small">{{ current.framework || 'Other framework' }}</span>

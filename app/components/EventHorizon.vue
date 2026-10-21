@@ -1,18 +1,11 @@
 <script setup lang="ts">
 defineProps<{ paused?: boolean }>()
 const id = useId()
-const hidden = ref(false)
-function visibilityChanged() {
-  hidden.value = document.hidden
-}
-onMounted(() => {
-  visibilityChanged()
-  document.addEventListener('visibilitychange', visibilityChanged)
-})
-onBeforeUnmount(() => document.removeEventListener('visibilitychange', visibilityChanged))
+const host = ref<HTMLDivElement>()
+const visible = useSceneVisibility(host)
 </script>
 <template>
-  <div class="event-horizon" :class="{ still: paused || hidden }" aria-hidden="true">
+  <div ref="host" class="event-horizon" :class="{ still: paused || !visible }" aria-hidden="true">
     <svg viewBox="0 0 720 340" fill="none" focusable="false">
       <defs>
         <radialGradient :id="`${id}-halo`">
@@ -114,7 +107,7 @@ onBeforeUnmount(() => document.removeEventListener('visibilitychange', visibilit
   fill: #090c10;
 }
 .accretion-flow {
-  animation: accretion 48s linear infinite;
+  animation: accretion 48s steps(720) infinite;
 }
 .still .accretion-flow {
   animation-play-state: paused;

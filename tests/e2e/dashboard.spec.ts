@@ -16,10 +16,11 @@ test('universe renders every project, changes metrics and supports camera contro
   const initialBody = await planet.getAttribute('data-body')
   await page.getByRole('button', { name: 'MAU', exact: true }).click()
   await expect(planet).toHaveAttribute('aria-label', /1.4K MAU/i)
-  // A rank that stays the same retains its solar-system identity and size.
+  // Metrics change the glow and numbers, never the project's identity.
   await expect(planet).toHaveAttribute('data-body', initialBody!)
   await page.getByRole('button', { name: 'Deployments', exact: true }).click()
   await expect(planet).toHaveAttribute('aria-label', /8 DEPLOYMENTS/)
+  await expect(planet).toHaveAttribute('data-body', initialBody!)
   await page.getByRole('button', { name: 'DAU', exact: true }).click()
   const oldWidth = (await planet.boundingBox())!.width
   await page.getByRole('button', { name: 'Zoom in', exact: true }).click()

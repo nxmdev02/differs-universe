@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { Metric, DeployStatus, ProjectViewModel } from '#shared/types/project'
-import { solarAssignments, projectActivity } from '#shared/utils/project-appearance'
+import {
+  solarAssignments,
+  projectActivity,
+  sortProjectsByTraffic,
+} from '#shared/utils/project-appearance'
 import {
   formatNumber,
   compactNumber,
@@ -36,21 +40,14 @@ const scene = ref<{
 }>()
 const searchInput = ref<HTMLInputElement>()
 const filtered = computed(() =>
-  projects.value
-    .filter(
-      (project) =>
-        (!query.value ||
-          `${project.name} ${project.domains.join(' ')} ${project.github?.repo || ''}`
-            .toLowerCase()
-            .includes(query.value.toLowerCase())) &&
-        (statusFilter.value === 'ALL' || project.deployment.status === statusFilter.value),
-    )
-    .sort(
-      (a, b) =>
-        (b.analytics.dau ?? -1) - (a.analytics.dau ?? -1) ||
-        a.name.localeCompare(b.name) ||
-        a.id.localeCompare(b.id),
-    ),
+  sortProjectsByTraffic(projects.value).filter(
+    (project) =>
+      (!query.value ||
+        `${project.name} ${project.domains.join(' ')} ${project.github?.repo || ''}`
+          .toLowerCase()
+          .includes(query.value.toLowerCase())) &&
+      (statusFilter.value === 'ALL' || project.deployment.status === statusFilter.value),
+  ),
 )
 const selected = computed(() => projects.value.find((project) => project.id === selectedId.value))
 const totalDau = computed(() =>
@@ -186,11 +183,12 @@ onBeforeUnmount(() => {
           </div>
           <button
             class="secondary-button refresh-button"
+            aria-label="Sync projects"
             :disabled="status === 'pending'"
             @click="synchronize"
           >
             <AppIcon name="refresh" :class="{ spinning: status === 'pending' }" :size="15" />{{
-              status === 'pending' ? 'Syncing…' : 'Sync projects'
+              status === 'pending' ? 'Syncing…' : 'Sync'
             }}
           </button>
         </div>
@@ -217,11 +215,6 @@ onBeforeUnmount(() => {
                 : 'daily active users · sample'
             }}</span>
           </div>
-          <div class="overview-end">
-            <span class="live-dot" />{{
-              data?.mode === 'real' ? 'Live projects' : 'Sample workspace'
-            }}
-          </div>
         </div>
         <div
           class="universe-shell"
@@ -245,9 +238,9 @@ onBeforeUnmount(() => {
             </div>
             <div class="metric-controls">
               <span :title="sampleMetric ? 'The selected metric uses sample data.' : undefined"
-                >Size by{{ sampleMetric ? ' · sample' : '' }}</span
+                >Show{{ sampleMetric ? ' · sample' : '' }}</span
               >
-              <div class="metric-switch" aria-label="Planet size metric">
+              <div class="metric-switch" aria-label="Displayed project metric">
                 <button
                   v-for="(label, key) in metricLabels"
                   :key="key"
@@ -286,14 +279,18 @@ onBeforeUnmount(() => {
                 <h2>
                   Projects <span>{{ projects.length }}</span>
                 </h2>
-                <span class="list-sort" title="Sorted by DAU, highest first">DAU ↓</span>
+                <span
+                  class="list-sort"
+                  title="DAU, highest first; ties and projects without visitors use the latest deployment or commit"
+                  >DAU ↓ · Updated</span
+                >
               </div>
               <label class="search-field"
                 ><AppIcon name="search" :size="15" /><input
                   ref="searchInput"
                   v-model="query"
                   type="search"
-                  placeholder="Find a project…"
+                  placeholder="Find project"
                   aria-label="Search projects"
                 /><kbd>⌘ K</kbd></label
               >
@@ -390,13 +387,24 @@ onBeforeUnmount(() => {
                 </button>
               </div>
               <template v-else-if="view === 'universe'">
-                <EventHorizon class="universe-horizon" :paused="paused" />
+                <EventHorizon class="universe-horizon" :paused="paused || settingsOpen" />
                 <ObservatoryFrame />
                 <div class="scene-caption">
-                  <span class="coordinate-mark">+</span> EARTH · HOME SYSTEM<span
+                  <span class="coordinate-mark">+</span><span>EARTH · HOME SYSTEM</span
+                  ><span
                     >{{ projects.length - cometCount - moonCount }} planets · {{ moonCount }} moons
                     · {{ cometCount }} comets</span
                   >
+                  <span
+                    :title="
+                      metric === 'deployments'
+                        ? 'Fixed body sizes, assigned by DAU then recent deployment or commit. Glow follows DAU; a ripple marks a successful deployment in the last 24 hours.'
+                        : 'Fixed body sizes, assigned by DAU then recent deployment or commit. More visitors create a stronger glow; a ripple marks a successful deployment in the last 24 hours.'
+                    "
+                  >
+                    DAU / recency · Glow:
+                    {{ metric === 'deployments' ? 'DAU' : metricLabels[metric] }}
+                  </span>
                 </div>
                 <ClientOnly
                   ><UniverseScene
@@ -406,6 +414,7 @@ onBeforeUnmount(() => {
                     :metric="metric"
                     :selected-id="selectedId"
                     :paused="paused"
+                    :suspended="settingsOpen"
                     @select="selectProject"
                   />
                   <template #fallback

@@ -5,7 +5,7 @@ import {
   type CelestialAppearance,
   projectSiteUrl,
 } from '#shared/utils/project-appearance'
-import { displayDate, metricLabel, metricText } from '#shared/utils/planet-size'
+import { displayDate, metricLabel, metricText, metricAvailable } from '#shared/utils/planet-size'
 const props = defineProps<{
   project: ProjectViewModel
   appearance: CelestialAppearance
@@ -52,13 +52,9 @@ watch(
       </div>
       <span class="preview-domain">{{ hostname }}</span>
       <span class="preview-mapping">{{
-        appearance.rank
-          ? `#${appearance.rank} by ${metricLabel(project, metric)} · ${appearance.label}`
-          : appearance.kind === 'moon'
-            ? 'Additional project · Earth satellite'
-            : appearance.kind === 'comet'
-              ? '90+ days without known activity'
-              : `${appearance.label} · metric unavailable`
+        appearance.kind === 'comet'
+          ? '90+ days without known activity'
+          : `${appearance.label} · ${(project.analytics.dau ?? 0) > 0 ? 'DAU priority' : 'recent activity'}`
       }}</span>
       <p>
         {{ metricText(project, metric) }} {{ metricLabel(project, metric)
@@ -70,6 +66,11 @@ watch(
               : 'Sample analytics'
         }}</span>
       </p>
+      <span class="preview-mapping">{{
+        !metricAvailable(project, metric)
+          ? 'Metric unavailable'
+          : `#${appearance.rank} by ${metricLabel(project, metric)} · equal values share a rank`
+      }}</span>
       <p v-if="activity.days !== null">
         {{ activity.days === 0 ? 'Active today' : `${activity.days} days since last known activity`
         }}<span>Based on {{ activity.basis }}</span>

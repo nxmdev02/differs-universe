@@ -232,6 +232,20 @@ const atmospherePaused = ref(false)
   .auth-card h1 {
     font-size: 29px;
   }
+  .auth-card p,
+  .auth-card .auth-message {
+    font-size: 14px;
+    line-height: 1.7;
+  }
+  .auth-private,
+  .auth-footer {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .auth-eyebrow {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+  }
   .auth-brand {
     left: max(24px, env(safe-area-inset-left));
     top: max(24px, env(safe-area-inset-top));

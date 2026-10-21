@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-for (const width of [320, 390, 768]) {
+for (const width of [320, 390, 430, 768]) {
   test(`mobile layout at ${width}px keeps navigation, controls, lists and settings usable`, async ({
     page,
   }) => {

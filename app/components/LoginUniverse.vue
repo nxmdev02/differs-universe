@@ -1,5 +1,6 @@
 <script setup lang="ts">
 const host = ref<HTMLDivElement>()
+const sceneVisible = useSceneVisibility(host)
 const layer = ref<HTMLDivElement>()
 const satellite = ref<HTMLSpanElement>()
 const distantSatellite = ref<HTMLSpanElement>()
@@ -36,7 +37,7 @@ function paint() {
   position(distantSatellite.value, -elapsed * 0.11 + 2.6, 141, 100)
 }
 function animate(time: number) {
-  if (disposed || paused.value || reduced.value || document.hidden) return
+  if (disposed || paused.value || reduced.value || !sceneVisible.value) return
   frame = requestAnimationFrame(animate)
   if (previousTime && time - previousTime < 32) return
   const delta = previousTime ? Math.min((time - previousTime) / 1000, 0.1) : 0
@@ -50,7 +51,7 @@ function animate(time: number) {
 function syncMotion() {
   cancelAnimationFrame(frame)
   previousTime = 0
-  if (!paused.value && !reduced.value && !document.hidden) frame = requestAnimationFrame(animate)
+  if (!paused.value && !reduced.value && sceneVisible.value) frame = requestAnimationFrame(animate)
 }
 function motionChanged() {
   reduced.value = motionQuery.matches
@@ -81,20 +82,19 @@ function sendSignal() {
   }, 1400)
 }
 watch(paused, syncMotion)
+watch(sceneVisible, syncMotion)
 watch([paused, reduced], () => emit('motionChange', paused.value || reduced.value))
 onMounted(() => {
   motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)')
   paint()
   motionChanged()
   motionQuery.addEventListener('change', motionChanged)
-  document.addEventListener('visibilitychange', syncMotion)
 })
 onBeforeUnmount(() => {
   disposed = true
   cancelAnimationFrame(frame)
   clearTimeout(signalTimer)
   motionQuery?.removeEventListener('change', motionChanged)
-  document.removeEventListener('visibilitychange', syncMotion)
 })
 defineExpose({ follow, resetPointer })
 </script>
