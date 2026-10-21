@@ -246,10 +246,10 @@ defineExpose({ follow, resetPointer })
 .login-satellite.distant svg {
   display: block;
   position: absolute;
-  width: 34px;
-  height: 34px;
-  left: -17px;
-  top: -17px;
+  width: 24px;
+  height: 24px;
+  left: -12px;
+  top: -12px;
   overflow: visible;
 }
 .login-endurance-spin {

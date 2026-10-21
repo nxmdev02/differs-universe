@@ -19,7 +19,7 @@ defineProps<{ paused?: boolean }>()
   pointer-events: none;
 }
 .endurance-flight {
-  transform: translate(190px, 174px) scale(0.66);
+  transform: translate(190px, 174px) scale(0.33);
   animation: endurance-passage 32s linear infinite;
 }
 .endurance-bank {
@@ -38,32 +38,32 @@ defineProps<{ paused?: boolean }>()
 }
 @keyframes endurance-passage {
   0% {
-    transform: translate(190px, 174px) scale(0.66);
+    transform: translate(190px, 174px) scale(0.33);
     opacity: 0;
   }
   6% {
-    transform: translate(206px, 178px) scale(0.68);
+    transform: translate(206px, 178px) scale(0.34);
     opacity: 1;
   }
   25% {
-    transform: translate(267px, 189px) scale(0.74);
+    transform: translate(267px, 189px) scale(0.37);
     opacity: 1;
   }
   48% {
-    transform: translate(350px, 197px) scale(0.76);
+    transform: translate(350px, 197px) scale(0.38);
     opacity: 1;
   }
   70% {
-    transform: translate(435px, 190px) scale(0.64);
+    transform: translate(435px, 190px) scale(0.32);
     opacity: 1;
   }
   90% {
-    transform: translate(512px, 178px) scale(0.5);
+    transform: translate(512px, 178px) scale(0.25);
     opacity: 0.9;
   }
   97%,
   100% {
-    transform: translate(542px, 176px) scale(0.4);
+    transform: translate(542px, 176px) scale(0.2);
     opacity: 0;
   }
 }
