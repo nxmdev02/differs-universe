@@ -1250,22 +1250,12 @@ main {
 }
 .page-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   padding: 20px 2px 23px;
   font-size: 8px;
   color: var(--theme-muted, #607278);
   gap: 10px;
-}
-.page-footer > span:first-child {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-style: italic;
-}
-.footer-spark {
-  color: var(--theme-accent, #93b19c);
-  font-size: 12px;
 }
 .footer-dot {
   margin: 0 8px;

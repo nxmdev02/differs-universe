@@ -503,8 +503,7 @@ onBeforeUnmount(() => {
           {{ warning }}
         </div>
         <footer class="page-footer">
-          <span><span class="footer-spark">✦</span> A space for everything you’re making.</span
-          ><span v-if="data"
+          <span v-if="data"
             >Last synced {{ displayDate(data.updatedAt) }} KST <span class="footer-dot">·</span>
             {{
               data.mode === 'mock' ? 'Exploring demo data' : 'Vercel Analytics · UTC · 60s cache'
