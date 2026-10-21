@@ -7,6 +7,7 @@ const distantSatellite = ref<HTMLSpanElement>()
 const paused = ref(false)
 const emit = defineEmits<{ motionChange: [paused: boolean] }>()
 const reduced = ref(false)
+const earthRotationSeconds = 60
 const signal = ref(0)
 const signalVisible = ref(false)
 let motionQuery: MediaQueryList
@@ -22,7 +23,9 @@ let disposed = false
 
 function paint() {
   if (!host.value || !layer.value) return
-  host.value.style.setProperty('--earth-position', `${53 + ((elapsed * 1.4) % 200)}%`)
+  // A repeating map at 200% width completes one visible turn over 200 percentage points.
+  const earthTurn = (elapsed / earthRotationSeconds) % 1
+  host.value.style.setProperty('--earth-position', `${53 + earthTurn * 200}%`)
   host.value.style.setProperty('--station-spin', `${elapsed * 7}deg`)
   layer.value.style.transform = `translate3d(${x * 9}px, ${y * 7}px, 0) rotateX(${-y * 7}deg) rotateY(${x * 9}deg)`
   const position = (node: HTMLSpanElement | undefined, phase: number, rx: number, ry: number) => {
