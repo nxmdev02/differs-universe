@@ -5,7 +5,6 @@
     <span class="frame-corner bottom-left" />
     <span class="frame-corner bottom-right" />
     <span class="field-ruler" />
-    <span class="field-title">DEEP FIELD <i /> HOME IN SIGHT</span>
   </div>
 </template>
 <style scoped>
@@ -55,25 +54,7 @@
   background: repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 12px);
   opacity: 0.55;
 }
-.field-title {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  font-size: 7px;
-  letter-spacing: 2px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.field-title i {
-  height: 1px;
-  width: 20px;
-  background: currentColor;
-}
 @media (max-width: 760px) {
-  .field-title {
-    display: none;
-  }
   .observatory-frame {
     inset: 9px;
   }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-defineProps<{ paused?: boolean }>()
+defineProps<{ paused?: boolean; flyby?: boolean }>()
 const id = useId()
 const host = ref<HTMLDivElement>()
 const visible = useSceneVisibility(host)
@@ -87,6 +87,7 @@ const visible = useSceneVisibility(host)
           opacity=".25"
         />
       </g>
+      <EnduranceFlyby v-if="flyby" :paused="paused || !visible" />
     </svg>
   </div>
 </template>

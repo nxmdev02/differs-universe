@@ -387,7 +387,7 @@ onBeforeUnmount(() => {
                 </button>
               </div>
               <template v-else-if="view === 'universe'">
-                <EventHorizon class="universe-horizon" :paused="paused || settingsOpen" />
+                <EventHorizon class="universe-horizon" :paused="paused || settingsOpen" flyby />
                 <ObservatoryFrame />
                 <div class="scene-caption">
                   <span class="coordinate-mark">+</span><span>EARTH · HOME SYSTEM</span

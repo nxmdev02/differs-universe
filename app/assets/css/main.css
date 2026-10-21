@@ -947,14 +947,6 @@ main {
   letter-spacing: 3px;
   text-align: center;
 }
-.earth-target small {
-  display: block;
-  margin-top: 6px;
-  font-size: 6px;
-  letter-spacing: 1.8px;
-  white-space: nowrap;
-  color: var(--theme-muted, #6d8fa8);
-}
 .mini-planet.mini-comet {
   background: radial-gradient(circle at 30% 30%, #ddedfa, #6f95b3 40%, #203547 85%);
 }
@@ -2180,10 +2172,6 @@ a.domain-link:hover {
   .planet-label .comet-caption {
     font-size: 10px;
     letter-spacing: 0.4px;
-  }
-  .earth-target small {
-    font-size: 9px;
-    letter-spacing: 1px;
   }
   .planet-preview {
     position: fixed;

@@ -7,6 +7,7 @@ import { setTimeout } from 'node:timers/promises'
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
 import { createEvent, sealSession } from 'h3'
+import { chromium } from '@playwright/test'
 
 async function withServer(environment, check) {
   const listener = createServer()
@@ -229,7 +230,79 @@ test('valid sessions unlock protected pages; forged, expired and unapproved sess
       headers: { ...headers, Origin: googleEnvironment.APP_URL },
     })
     assert.equal(logout.status, 200)
-    assert.match(logout.headers.get('set-cookie'), /differs-auth=;/)
+    const cleared = logout.headers.getSetCookie()
+    for (const name of ['differs-auth', 'differs-oauth']) {
+      const cookie = cleared.find((value) => value.startsWith(`${name}=;`))
+      assert.ok(cookie, `${name} is cleared`)
+      assert.match(cookie, /Max-Age=0/i)
+      assert.match(cookie, /Path=\//i)
+    }
     assert.equal((await fetch(`${base}/api/projects`)).status, 401)
+    for (const site of ['cross-site', 'same-site', 'none']) {
+      const rejected = await fetch(`${base}/api/auth/logout`, {
+        method: 'POST',
+        headers: {
+          ...headers,
+          Origin: 'https://attacker.test',
+          'Sec-Fetch-Site': site,
+          'X-Forwarded-Host': 'attacker.test',
+        },
+      })
+      assert.equal(rejected.status, 403)
+      assert.equal(rejected.headers.getSetCookie().length, 0)
+    }
+  })
+})
+
+test('browser logout clears its session when the served origin differs from the OAuth callback origin', async () => {
+  await withServer(googleEnvironment, async (base) => {
+    const browser = await chromium.launch({ args: ['--enable-unsafe-swiftshader'] })
+    try {
+      const context = await browser.newContext({ reducedMotion: 'reduce' })
+      const cookie = await authCookie()
+      await context.addCookies([
+        {
+          name: 'differs-auth',
+          value: cookie.slice('differs-auth='.length),
+          url: base,
+          httpOnly: true,
+        },
+        { name: 'differs-oauth', value: 'synthetic-flow-cookie', url: base, httpOnly: true },
+      ])
+      const page = await context.newPage()
+      await page.goto(base)
+      await page.locator('.planet-target').first().waitFor()
+      await page.getByRole('button', { name: 'Settings', exact: true }).click()
+      await page.getByRole('button', { name: 'Sign out', exact: true }).waitFor()
+      const response = page.waitForResponse((res) => res.url().endsWith('/api/auth/logout'))
+      await page.getByRole('button', { name: 'Sign out', exact: true }).click()
+      const logout = await response
+      assert.equal(logout.status(), 200)
+      const headers = await logout.request().allHeaders()
+      assert.equal(headers.origin, base)
+      assert.equal(headers['sec-fetch-site'], 'same-origin')
+      assert.notEqual(headers.origin, googleEnvironment.APP_URL)
+      await page.waitForURL(`${base}/login`)
+      assert.match(
+        await page.locator('.auth-eyebrow').innerText(),
+        /We will find a way\. We always have\./,
+      )
+      assert.equal(
+        (await context.cookies()).some((value) =>
+          ['differs-auth', 'differs-oauth'].includes(value.name),
+        ),
+        false,
+      )
+      assert.equal((await context.request.get(`${base}/api/auth/session`)).status(), 200)
+      assert.equal(
+        (await (await context.request.get(`${base}/api/auth/session`)).json()).user,
+        null,
+      )
+      assert.equal((await context.request.get(`${base}/api/projects`)).status(), 401)
+      await page.goto(base)
+      assert.equal(page.url(), `${base}/login`)
+    } finally {
+      await browser.close()
+    }
   })
 })

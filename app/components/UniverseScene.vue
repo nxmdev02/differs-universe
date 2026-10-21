@@ -670,6 +670,14 @@ onMounted(async () => {
         phase,
       }
       const next: Label[] = []
+      // Keep the whole project system still while inspecting a preview or details.
+      // Pausing only one body lets the others catch up and overlap it.
+      const projectsMoving =
+        !props.paused &&
+        !reducedMotion.value &&
+        !previewId.value &&
+        !props.selectedId &&
+        !pointers.size
       props.projects.forEach((project) => {
         const object = objects.get(project.id)
         if (!object) return
@@ -681,13 +689,7 @@ onMounted(async () => {
         else settling = true
         object.surface.scale.setScalar(object.radius)
         const appearance = assignments.value[project.id]!
-        const moving =
-          !props.paused &&
-          !reducedMotion.value &&
-          previewId.value !== project.id &&
-          props.selectedId !== project.id &&
-          !pointers.size
-        if (moving) {
+        if (projectsMoving) {
           object.phase += delta * object.speed
           object.spin += delta * appearance.spin
         }
@@ -818,7 +820,7 @@ onBeforeUnmount(() => {
         :data-spin="elapsed"
         @click.stop="reset"
       >
-        <span>EARTH<small>HOME BASE</small></span>
+        <span>EARTH</span>
       </button>
       <span
         v-if="moonLabel.visible"
@@ -856,6 +858,7 @@ onBeforeUnmount(() => {
         :data-body="assignments[label.project.id]!.kind"
         :data-glow="glows[label.project.id] === null ? 'unavailable' : glows[label.project.id]"
         :data-spin="objects.get(label.project.id)?.spin"
+        :data-phase="objects.get(label.project.id)?.phase"
         @click.stop="activate($event, label.project)"
         @keydown.down.prevent="focusPreview(label.project)"
         @pointerenter="showPreview(label.project, $event)"

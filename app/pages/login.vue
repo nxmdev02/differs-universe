@@ -35,7 +35,7 @@ const atmospherePaused = ref(false)
     <div class="auth-brand">differs<span>✦</span></div>
     <LoginUniverse ref="universe" class="auth-scene" @motion-change="atmospherePaused = $event" />
     <div class="auth-card">
-      <span class="auth-eyebrow">EVERY JOURNEY BEGINS AT HOME</span>
+      <span class="auth-eyebrow">We will find a way. We always have.</span>
       <h1>Your universe awaits<span>.</span></h1>
       <p>Across a universe of possibilities.<br />Find your way back to what you’re building.</p>
       <a v-if="ready" class="google-signin" href="/auth/google">
@@ -134,8 +134,11 @@ const atmospherePaused = ref(false)
   position: relative;
 }
 .auth-eyebrow {
-  font-size: 9px;
-  letter-spacing: 2.4px;
+  display: block;
+  font-size: 12px;
+  line-height: 1.7;
+  letter-spacing: 0.7px;
+  text-wrap: balance;
   color: var(--theme-accent);
 }
 .auth-card h1 {
@@ -243,8 +246,8 @@ const atmospherePaused = ref(false)
     line-height: 1.6;
   }
   .auth-eyebrow {
-    font-size: 10px;
-    letter-spacing: 1.5px;
+    font-size: 12px;
+    letter-spacing: 0.4px;
   }
   .auth-brand {
     left: max(24px, env(safe-area-inset-left));

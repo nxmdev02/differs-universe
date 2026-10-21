@@ -7,9 +7,19 @@ export default defineEventHandler(async (event) => {
   const config = authConfig(event)
   if (!config.enabled || !config.configured)
     throw createError({ statusCode: 503, statusMessage: 'Sign-in is not configured.' })
-  if (getHeader(event, 'origin') !== config.origin)
+  const origin = getHeader(event, 'origin')
+  // APP_URL is the OAuth callback origin; the app may redirect to a www alias.
+  // Browser-controlled Fetch Metadata identifies requests from the current site
+  // without trusting Host or X-Forwarded-Host as an additional allowed origin.
+  const sameOrigin = getHeader(event, 'sec-fetch-site') === 'same-origin'
+  if (!origin || origin === 'null' || (origin !== config.origin && !sameOrigin))
     throw createError({ statusCode: 403, statusMessage: 'Invalid request origin.' })
-  await clearSession(event, sessionConfig(config))
-  await clearSession(event, sessionConfig(config, true))
+  for (const flow of [false, true]) {
+    const session = sessionConfig(config, flow)
+    await clearSession(event, {
+      ...session,
+      cookie: { ...(session.cookie || {}), maxAge: 0 },
+    })
+  }
   return { ok: true }
 })
