@@ -58,7 +58,7 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
   )
   const glow = Number(await active.getAttribute('data-glow'))
   expect(glow).toBeGreaterThan(0)
-  expect(glow).toBeLessThan(0.5)
+  expect(glow).toBeLessThan(0.75)
   const identities = await page
     .locator('.planet-target')
     .evaluateAll((elements) =>

@@ -113,7 +113,7 @@ test('traffic glow is absolute, bounded and distinct from missing analytics', ()
     return visitorGlow(project, 'dau')!
   })
   assert.equal(levels[0], 0)
-  assert.ok(levels[1]! > 0 && levels[1]! < 0.2)
+  assert.ok(levels[1]! >= 0.4 && levels[1]! < 0.5)
   assert.ok(levels[2]! > levels[1]! && levels[3]! > levels[2]!)
   assert.equal(levels[4], 1)
   assert.equal(levels[5], 1)

@@ -180,12 +180,13 @@ export function solarAssignments(projects: ProjectViewModel[], metric: Metric, n
   return assignments
 }
 
-/** Absolute logarithmic scale: a lone visitor never becomes maximum brightness.
+/** Positive traffic has a visible minimum; a lone visitor never reaches maximum brightness.
  * Deployment counts never masquerade as traffic; that view keeps the DAU glow. */
 export function visitorGlow(project: ProjectViewModel, metric: Metric) {
   const value = project.analytics[metric === 'mau' ? 'mau' : 'dau']
   if (value === null || !Number.isFinite(value)) return null
-  return Math.min(1, Math.log1p(Math.max(0, value)) / Math.log1p(1000))
+  if (value <= 0) return 0
+  return 0.3 + 0.7 * Math.min(1, Math.log1p(value) / Math.log1p(100))
 }
 
 /** A successful deployment emits one signal per visit, only within the last 24 hours. */

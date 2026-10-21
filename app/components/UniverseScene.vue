@@ -2,6 +2,7 @@
 import * as THREE from 'three'
 import { placeOrbitLabels } from '~/utils/orbit-labels'
 import type { Metric, ProjectViewModel } from '#shared/types/project'
+import { moonPhaseAt } from '#shared/utils/moon-phase'
 import { metricAvailable, metricText, metricLabel, statusColors } from '#shared/utils/planet-size'
 import {
   projectActivity,
@@ -48,8 +49,12 @@ type Label = {
   labelY: number
 }
 const labels = shallowRef<Label[]>([])
+// A sync can remove projects before the next animation frame updates positions.
+const renderLabels = computed(() =>
+  labels.value.filter((label) => assignments.value[label.project.id]),
+)
 const earthLabel = ref({ x: 0, y: 0, radius: 30 })
-const moonLabel = ref({ x: 0, y: 0, visible: false })
+const moonLabel = ref({ x: 0, y: 0, visible: false, phase: moonPhaseAt(0) })
 const previewId = ref<string | null>(null)
 const previewProject = computed(() =>
   props.projects.find((project) => project.id === previewId.value),
@@ -200,6 +205,14 @@ watch(theme, (value) => {
     material.color.set(light ? '#446e5b' : '#91b6c7')
     material.opacity = child.userData.baseOpacity * (light ? 1.9 : 1)
   })
+  for (const [id, object] of objects) {
+    const appearance = assignments.value[id]
+    if (!appearance) continue
+    object.halo.material.color.set(light ? appearance.color : appearance.accent)
+    if (light) object.halo.material.color.multiplyScalar(0.55)
+    object.halo.material.blending = light ? THREE.NormalBlending : THREE.AdditiveBlending
+    object.halo.material.needsUpdate = true
+  }
   requestRender()
 })
 function radiusFor(project: ProjectViewModel) {
@@ -256,11 +269,13 @@ function populate() {
     const halo = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: glowTexture,
-        color: dormant ? '#9dcfff' : appearance.color,
+        color: new THREE.Color(
+          theme.value === 'light' ? appearance.color : appearance.accent,
+        ).multiplyScalar(theme.value === 'light' ? 0.55 : 1),
         transparent: true,
         opacity: 0.22,
         depthWrite: false,
-        blending: THREE.AdditiveBlending,
+        blending: theme.value === 'light' ? THREE.NormalBlending : THREE.AdditiveBlending,
       }),
     )
     halo.position.z = -3
@@ -634,18 +649,25 @@ onMounted(async () => {
       }
       referenceMoon.visible = !hasProjectMoons.value
       const moonOrbit = earth.scale.x + (width < 560 ? 27 : 46)
-      referenceMoon.scale.setScalar(width < 560 ? 7 : 10)
+      const phase = moonPhaseAt(elapsed)
+      referenceMoon.scale.setScalar(width < 560 ? 9 : 12)
       referenceMoon.position.set(
-        Math.cos(0.65 + elapsed * 0.055) * moonOrbit,
-        Math.sin(0.65 + elapsed * 0.055) * moonOrbit * 0.82,
+        Math.cos(phase.radians) * moonOrbit,
+        Math.sin(phase.radians) * moonOrbit * 0.82,
         12,
       )
-      referenceMoon.rotation.y = elapsed * 0.055
+      referenceMoon.rotation.y = phase.radians
+      ;(referenceMoon.material as THREE.ShaderMaterial).uniforms.lightDirection!.value.set(
+        Math.sin(phase.radians),
+        0,
+        -Math.cos(phase.radians),
+      )
       projected.copy(referenceMoon.position).project(camera)
       moonLabel.value = {
         x: ((projected.x + 1) * width) / 2,
         y: ((-projected.y + 1) * height) / 2,
         visible: referenceMoon.visible,
+        phase,
       }
       const next: Label[] = []
       props.projects.forEach((project) => {
@@ -675,12 +697,13 @@ onMounted(async () => {
         object.group.position.set(object.x, object.y, 10)
         if (object.tail) object.tail.rotation.z = Math.atan2(object.y, object.x)
         const glow = glows.value[project.id] ?? 0
+        ;(object.mesh.material as THREE.ShaderMaterial).uniforms.trafficGlow!.value = glow
         const highlighted = props.selectedId === project.id || previewId.value === project.id
         ;(object.halo.material as THREE.SpriteMaterial).opacity = Math.min(
-          0.85,
-          0.06 + glow * 0.64 + (highlighted ? 0.15 : 0),
+          0.95,
+          glow * 0.9 + (highlighted ? 0.12 : 0),
         )
-        object.halo.scale.setScalar(3.3 + glow * 1.5)
+        object.halo.scale.setScalar(2.8 + glow * 1.6)
         projected.copy(object.group.position).project(camera)
         next.push({
           project,
@@ -769,7 +792,7 @@ onBeforeUnmount(() => {
     </div>
     <template v-else>
       <svg class="orbit-label-lines" :viewBox="`0 0 ${width} ${height}`" aria-hidden="true">
-        <template v-for="label in labels" :key="label.project.id">
+        <template v-for="label in renderLabels" :key="label.project.id">
           <line
             v-if="
               Math.abs(label.labelX - label.x) > 15 ||
@@ -801,12 +824,14 @@ onBeforeUnmount(() => {
         v-if="moonLabel.visible"
         class="reference-moon-label"
         :style="{ left: `${moonLabel.x}px`, top: `${moonLabel.y - 23}px` }"
-        aria-label="Moon · Earth's satellite"
+        :aria-label="`Moon · ${moonLabel.phase.name} · ${Math.round(moonLabel.phase.illuminated * 100)}% illuminated · illustrative 60-second cycle`"
+        :data-phase="moonLabel.phase.radians"
+        :data-illuminated="moonLabel.phase.illuminated"
         >MOON</span
       >
       <component
         :is="projectSiteUrl(label.project) ? 'a' : 'button'"
-        v-for="label in labels"
+        v-for="label in renderLabels"
         :key="label.project.id"
         class="planet-target"
         :class="{

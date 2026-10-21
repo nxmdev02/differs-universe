@@ -29,10 +29,12 @@ export function planetMaterial(
       accent: { value: new THREE.Color(appearance.accent) },
       seed: { value: appearance.seed / 1000 },
       kind: { value: kinds.indexOf(appearance.kind) },
+      lightDirection: { value: new THREE.Vector3(-0.65, 0.65, 1).normalize() },
+      trafficGlow: { value: 0 },
     },
     vertexShader: `varying vec3 vNormal; varying vec3 p;
       void main(){ vNormal=normalMatrix*normal; p=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
-    fragmentShader: `uniform vec3 color,accent; uniform float seed; uniform int kind; varying vec3 vNormal,p;
+    fragmentShader: `uniform vec3 color,accent,lightDirection; uniform float seed,trafficGlow; uniform int kind; varying vec3 vNormal,p;
       ${noiseShader}
       void main(){
         vec3 n=normalize(vNormal); float f=fbm(p*5.+seed);
@@ -52,8 +54,14 @@ export function planetMaterial(
           surface=color*(.58+f*.65)-color*crater*.22;
           if(kind==7){float heart=length((p.xy-vec2(.2,-.12))*vec2(2.8,3.5));surface=mix(surface,accent,(1.-smoothstep(.65,1.0,heart))*smoothstep(0.,.4,p.z));}
         }
-        float light=max(dot(n,normalize(vec3(-.65,.65,1.))),0.);float rim=pow(1.-max(n.z,0.),4.);
-        gl_FragColor=vec4(surface*(.19+light*.95)+color*rim*.1,1.);
+        float light=max(dot(n,lightDirection),0.);float edge=1.-max(n.z,0.);float rim=pow(edge,4.);
+        float ambient=kind==8?.025:.19;
+        // Keep a thin crescent legible at the moon's small screen size.
+        float diffuse=kind==8?2.2:.95;
+        vec3 lit=surface*(ambient+light*diffuse)+color*rim*(kind==8?0.:.1);
+        // Reuse the sphere's shading: no bloom pass, lights, or extra geometry.
+        lit+=mix(accent,vec3(1.),.3)*pow(edge,2.2)*trafficGlow*1.15;
+        gl_FragColor=vec4(lit,1.);
       }`,
   })
 }
