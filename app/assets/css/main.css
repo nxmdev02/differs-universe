@@ -930,6 +930,21 @@ main {
   z-index: 1;
   cursor: pointer;
 }
+.reference-sun {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  color: var(--theme-accent);
+  text-align: center;
+}
+.reference-sun > span {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 2px;
+}
 .earth-target > span {
   position: absolute;
   top: calc(100% + 15px);

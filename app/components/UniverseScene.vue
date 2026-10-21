@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import * as THREE from 'three'
 import { placeOrbitLabels } from '~/utils/orbit-labels'
+import { createStarfield } from '~/utils/starfield'
 import type { Metric, ProjectViewModel } from '#shared/types/project'
 import { moonPhaseAt } from '#shared/utils/moon-phase'
 import { metricAvailable, metricText, metricLabel, statusColors } from '#shared/utils/planet-size'
@@ -17,6 +18,7 @@ import {
   earthCloudMaterial,
   atmosphereMaterial,
   planetRingMaterial,
+  sunMaterial,
   cometTail,
 } from '~/utils/universe-materials'
 
@@ -55,6 +57,7 @@ const renderLabels = computed(() =>
   labels.value.filter((label) => assignments.value[label.project.id]),
 )
 const earthLabel = ref({ x: 0, y: 0, radius: 30 })
+const sunLabel = ref({ x: 0, y: 0, radius: 0 })
 const moonLabel = ref({ x: 0, y: 0, visible: false, phase: moonPhaseAt(0) })
 const previewId = ref<string | null>(null)
 const previewProject = computed(() =>
@@ -90,6 +93,7 @@ let renderer: THREE.WebGLRenderer | undefined
 let scene: THREE.Scene
 let camera: THREE.OrthographicCamera
 let earth: THREE.Mesh
+let solarDisk: THREE.Mesh
 let clouds: THREE.Mesh
 let referenceMoon: THREE.Mesh
 let atmosphere: THREE.Sprite
@@ -99,6 +103,7 @@ const earthDetailed = ref(false)
 let glowTexture: THREE.CanvasTexture
 let tracks: THREE.Group
 let starMaterial: THREE.PointsMaterial | undefined
+const starTime = { value: 0 }
 let draw: ((delta: number) => boolean) | undefined
 let frame = 0,
   width = 1000,
@@ -320,6 +325,9 @@ function resize() {
   const mobile = width < 560
   const earthRadius = mobile ? 46 : Math.min(88, Math.max(65, height * 0.13))
   earth.scale.setScalar(earthRadius)
+  const sunRadius = mobile ? 26 : 44
+  solarDisk.scale.setScalar(sunRadius)
+  solarDisk.position.set(-width / 2 + (mobile ? 56 : 78), height / 2 - (mobile ? 126 : 145), -20)
   atmosphere.scale.set(earthRadius * 3.1, earthRadius * 3.1, 1)
   const boundX = Math.max(100, width / 2 - 105),
     boundY = Math.max(160, height / 2 - 112)
@@ -582,6 +590,8 @@ onMounted(async () => {
     const sun = new THREE.DirectionalLight('#fff3dc', 2.8)
     sun.position.set(-450, 380, 600)
     scene.add(sun)
+    solarDisk = new THREE.Mesh(new THREE.PlaneGeometry(4, 4), sunMaterial())
+    scene.add(solarDisk)
     atmosphere = new THREE.Sprite(
       new THREE.SpriteMaterial({
         map: glowTexture,
@@ -594,33 +604,16 @@ onMounted(async () => {
     )
     atmosphere.position.z = -4
     scene.add(atmosphere)
-    const stars = new Float32Array(700 * 3)
-    let seed = 137
-    const random = () => {
-      seed = (Math.imul(seed, 1664525) + 1013904223) | 0
-      return (seed >>> 0) / 4294967296
-    }
-    for (let index = 0; index < stars.length; index += 3) {
-      stars[index] = (random() - 0.5) * 2600
-      stars[index + 1] = (random() - 0.5) * 2200
-      stars[index + 2] = -100
-    }
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.BufferAttribute(stars, 3))
-    starMaterial = new THREE.PointsMaterial({
-      color: theme.value === 'light' ? '#527263' : '#c5d3e6',
-      size: 1.2,
-      transparent: true,
-      opacity: 0.4,
-      sizeAttenuation: false,
-    })
-    scene.add(new THREE.Points(geometry, starMaterial))
+    const stars = createStarfield(theme.value === 'light' ? '#527263' : '#c5d3e6', starTime)
+    starMaterial = stars.material
+    scene.add(stars)
     populate()
     observer = new ResizeObserver(resize)
     observer.observe(host.value!)
     const projected = new THREE.Vector3()
     draw = (delta: number) => {
       if (!props.paused && !reducedMotion.value) elapsed += delta
+      starTime.value = elapsed
       const lerp = reducedMotion.value ? 1 : 1 - Math.exp(-(delta || 1 / 30) * 10)
       camera.position.x += (targetCenter.x - camera.position.x) * lerp
       camera.position.y += (targetCenter.y - camera.position.y) * lerp
@@ -635,6 +628,13 @@ onMounted(async () => {
       camera.updateProjectionMatrix()
       camera.updateMatrixWorld()
       earth.rotation.y = -1.8 + elapsed * 0.055
+      ;(solarDisk.material as THREE.ShaderMaterial).uniforms.time!.value = elapsed
+      projected.copy(solarDisk.position).project(camera)
+      sunLabel.value = {
+        x: ((projected.x + 1) * width) / 2,
+        y: ((-projected.y + 1) * height) / 2,
+        radius: solarDisk.scale.x * camera.zoom,
+      }
       clouds.rotation.y = elapsed * 0.012
       projected.set(0, 0, 0).project(camera)
       earthLabel.value = {
@@ -717,6 +717,7 @@ onMounted(async () => {
         width,
         height,
         moonLabel.value.visible ? moonLabel.value : undefined,
+        [sunLabel.value],
       )
       labels.value = next
       renderer!.render(scene, camera)
@@ -788,6 +789,20 @@ onBeforeUnmount(() => {
       </button>
     </div>
     <template v-else>
+      <span
+        v-if="sunLabel.radius > 0"
+        class="reference-sun"
+        role="img"
+        aria-label="Sun · reference star"
+        :data-phase="elapsed"
+        :style="{
+          left: `${sunLabel.x}px`,
+          top: `${sunLabel.y}px`,
+          width: `${sunLabel.radius * 2}px`,
+          height: `${sunLabel.radius * 2}px`,
+        }"
+        ><span>SUN</span></span
+      >
       <svg class="orbit-label-lines" :viewBox="`0 0 ${width} ${height}`" aria-hidden="true">
         <template v-for="label in renderLabels" :key="label.project.id">
           <line

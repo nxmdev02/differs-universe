@@ -19,6 +19,7 @@ export function placeOrbitLabels<T extends ProjectPoint>(
   width: number,
   height: number,
   satellite?: { x: number; y: number },
+  references: Point[] = [],
 ) {
   const occupied: Box[] = [
     {
@@ -35,6 +36,13 @@ export function placeOrbitLabels<T extends ProjectPoint>(
       top: satellite.y - 32,
       bottom: satellite.y + 15,
     })
+  for (const point of references)
+    occupied.push({
+      left: point.x - point.radius - 12,
+      right: point.x + point.radius + 12,
+      top: point.y - point.radius - 12,
+      bottom: point.y + point.radius + 30,
+    })
   const bodies: Box[] = labels.map((p) => ({
     left: p.x - p.radius - 6,
     right: p.x + p.radius + 6,
@@ -50,8 +58,8 @@ export function placeOrbitLabels<T extends ProjectPoint>(
       ? [
           baseY,
           ...Array.from(
-            { length: Math.max(1, Math.floor((height - 214) / 44)) },
-            (_, i) => 94 + i * 44,
+            { length: Math.max(1, Math.floor((height - 214) / 22) + 1) },
+            (_, i) => 94 + i * 22,
           ),
         ]
       : [0, 36, -45, 72, -82, 108, -118, 144, -154, 180, -190, 216, -226].map((dy) => baseY + dy)

@@ -129,6 +129,37 @@ export function earthCloudMaterial() {
   })
 }
 
+/** A single transparent quad draws the stellar surface and corona without a bloom pass. */
+export function sunMaterial() {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    uniforms: { time: { value: 0 } },
+    vertexShader:
+      'varying vec2 point;void main(){point=uv*4.-2.;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
+    fragmentShader: `uniform float time;varying vec2 point;${noiseShader}
+      void main(){
+        float r=length(point);
+        float angle=atan(point.y,point.x);
+        float rays=.6+.22*sin(angle*11.+time*.04)+.18*sin(angle*23.-time*.025);
+        float corona=exp(-max(0.,r-1.)*5.)*(.24+rays*.16)*(1.-smoothstep(1.65,2.,r));
+        vec3 fire=vec3(1.,.38,.055);
+        if(r<1.){
+          vec3 sphere=vec3(point,sqrt(max(0.,1.-r*r)));
+          float c=cos(time*.035),s=sin(time*.035);
+          sphere.xz=mat2(c,-s,s,c)*sphere.xz;
+          float cells=fbm(sphere*15.+vec3(0.,time*.025,0.));
+          float granules=noise(sphere*55.);
+          fire=mix(vec3(1.,.3,.035),vec3(1.,.9,.46),smoothstep(.27,.73,cells));
+          fire*=.89+granules*.11;
+          fire=mix(fire,vec3(1.,.42,.065),smoothstep(.72,1.,r)*.35);
+        }
+        float disk=1.-smoothstep(.985,1.015,r);
+        gl_FragColor=vec4(fire,max(disk,corona));
+      }`,
+  })
+}
+
 export function atmosphereMaterial() {
   return new THREE.ShaderMaterial({
     transparent: true,
