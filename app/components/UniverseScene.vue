@@ -16,6 +16,7 @@ import {
   earthTexture,
   earthCloudMaterial,
   atmosphereMaterial,
+  planetRingMaterial,
   cometTail,
 } from '~/utils/universe-materials'
 
@@ -254,13 +255,7 @@ function populate() {
       for (const [inner, outer, opacity] of rings) {
         const ring = new THREE.Mesh(
           new THREE.RingGeometry(inner, outer, 64),
-          new THREE.MeshBasicMaterial({
-            color: appearance.accent,
-            transparent: true,
-            opacity,
-            side: THREE.DoubleSide,
-            depthWrite: false,
-          }),
+          planetRingMaterial(appearance.accent, opacity!, inner!, outer!),
         )
         ring.rotation.set(appearance.kind === 'uranus' ? 0.3 : 1.12, 0.15, -0.4)
         surface.add(ring)

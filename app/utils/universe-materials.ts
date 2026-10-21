@@ -36,22 +36,42 @@ export function planetMaterial(
       void main(){ vNormal=normalMatrix*normal; p=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
     fragmentShader: `uniform vec3 color,accent,lightDirection; uniform float seed,trafficGlow; uniform int kind; varying vec3 vNormal,p;
       ${noiseShader}
+      float craterRelief(vec3 point,vec3 center,float radius){
+        float d=length(point-normalize(center))/radius;
+        float bowl=1.-smoothstep(.48,.88,d);
+        float rim=smoothstep(.72,.94,d)*(1.-smoothstep(.94,1.18,d));
+        return rim*.16-bowl*.19;
+      }
       void main(){
         vec3 n=normalize(vNormal); float f=fbm(p*5.+seed);
         vec3 surface=color;
         if(kind==0){
-          float bands=sin(p.y*31.+fbm(p*7.)*3.5);surface=mix(color*.62,accent,smoothstep(-.8,.8,bands)*.8);
+          float bands=sin(p.y*31.+fbm(p*7.)*3.5);
+          surface=mix(color*.78,accent,smoothstep(-.8,.8,bands)*.65);
+          surface*=.96+.04*sin(p.y*92.+f*8.);
           float spot=length((p.xy-vec2(.38,-.27))*vec2(5.,10.));
           surface=mix(surface,vec3(.64,.26,.13)*(1.+f*.25),(1.-smoothstep(.65,1.1,spot))*smoothstep(0.,.3,p.z));
         }
         if(kind==1){float bands=sin(p.y*44.+f*2.);surface=mix(color*.8,accent,(bands*.5+.5)*.5);}
         if(kind==2){surface=mix(color,accent,smoothstep(.4,.8,f)*.35);surface*=.93+.07*sin(p.y*16.);}
-        if(kind==3){surface=color*(.8+f*.5);float streak=smoothstep(.92,.99,sin(p.y*27.+f*3.));surface=mix(surface,accent,streak*.25);}
-        if(kind==4){surface=mix(color*.65,accent,fbm(p*6.+vec3(f*2.)));}
+        if(kind==3){
+          surface=color*(.8+f*.5);
+          float streak=smoothstep(.88,.99,sin(p.y*27.+f*4.));surface=mix(surface,accent,streak*.19);
+          float storm=length((p.xy-vec2(-.3,.15))*vec2(4.,9.));
+          surface*=1.-(1.-smoothstep(.5,1.,storm))*smoothstep(0.,.3,p.z)*.3;
+        }
+        if(kind==4){surface=mix(color*.72,accent,fbm(p*vec3(3.,10.,3.)+vec3(f*1.5)));}
         if(kind==5){surface=mix(color*.55,color*1.2,smoothstep(.3,.65,f));surface=mix(surface,accent,smoothstep(.87,.97,abs(p.y)));}
         if(kind>=6){
           float pits=noise(p*22.+seed);float crater=smoothstep(.30,.40,pits)-smoothstep(.40,.54,pits);
           surface=color*(.58+f*.65)-color*crater*.22;
+          if(kind==6||kind==8){
+            float relief=craterRelief(p,vec3(.35,.25,.9),.23)
+              +craterRelief(p,vec3(-.4,-.25,.85),.17)
+              +craterRelief(p,vec3(-.2,.6,.8),.11)
+              +craterRelief(p,vec3(.5,-.6,-.5),.2);
+            surface+=color*relief;
+          }
           if(kind==7){float heart=length((p.xy-vec2(.2,-.12))*vec2(2.8,3.5));surface=mix(surface,accent,(1.-smoothstep(.65,1.0,heart))*smoothstep(0.,.4,p.z));}
         }
         float light=max(dot(n,lightDirection),0.);float edge=1.-max(n.z,0.);float rim=pow(edge,4.);
@@ -62,6 +82,38 @@ export function planetMaterial(
         // Reuse the sphere's shading: no bloom pass, lights, or extra geometry.
         lit+=mix(accent,vec3(1.),.3)*pow(edge,2.2)*trafficGlow*1.15;
         gl_FragColor=vec4(lit,1.);
+      }`,
+  })
+}
+
+/** Radial detail and a soft planetary shadow on the existing ring geometry. */
+export function planetRingMaterial(color: string, opacity: number, inner: number, outer: number) {
+  return new THREE.ShaderMaterial({
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+    uniforms: {
+      color: { value: new THREE.Color(color) },
+      opacity: { value: opacity },
+      inner: { value: inner },
+      outer: { value: outer },
+    },
+    vertexShader: `varying vec3 p,worldOffset,n;
+      void main(){
+        p=position;n=normalMatrix*normal;
+        worldOffset=mat3(modelMatrix)*position/length(modelMatrix[0].xyz);
+        gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);
+      }`,
+    fragmentShader: `uniform vec3 color;uniform float opacity,inner,outer;varying vec3 p,worldOffset,n;
+      void main(){
+        float r=length(p.xy);
+        float bands=.86+.09*sin(r*180.)+.05*sin(r*71.);
+        float edge=min((r-inner)/(outer-inner),(outer-r)/(outer-inner));
+        vec3 lightDirection=normalize(vec3(-.65,.65,1.));
+        float behind=1.-smoothstep(-.12,.08,dot(worldOffset,lightDirection));
+        float shadow=behind*(1.-smoothstep(.92,1.04,length(cross(worldOffset,lightDirection))));
+        float light=.58+.42*abs(dot(normalize(n),lightDirection));
+        gl_FragColor=vec4(color*bands*light*(1.-shadow*.72),opacity*smoothstep(0.,.08,edge));
       }`,
   })
 }
