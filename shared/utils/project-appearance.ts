@@ -125,17 +125,17 @@ export function projectAppearance(id: string) {
 }
 
 /** Traffic leads; quiet and unmeasured projects share the recent-activity fallback.
- * Missing activity dates sort last within a DAU tie. Never mutate the API response. */
+ * Missing activity dates sort last within a 30-day traffic tie. Never mutate the API response. */
 export function sortProjectsByTraffic(projects: ProjectViewModel[]) {
   return projects
     .map((project) => ({
       project,
-      dau: project.analytics.dau ?? 0,
+      visitors30d: project.analytics.mau ?? 0,
       updated: Date.parse(projectActivity(project).lastActivityAt ?? '') || 0,
     }))
     .sort(
       (a, b) =>
-        b.dau - a.dau ||
+        b.visitors30d - a.visitors30d ||
         b.updated - a.updated ||
         a.project.name.localeCompare(b.project.name) ||
         a.project.id.localeCompare(b.project.id),

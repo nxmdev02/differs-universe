@@ -23,7 +23,7 @@ const { data, status, error, refresh } = await useFetch('/api/projects', {
 const projects = computed(() => data.value?.projects || [])
 const query = ref('')
 const statusFilter = ref<DeployStatus | 'ALL'>('ALL')
-const metric = ref<Metric>('dau')
+const metric = ref<Metric>('mau')
 const assignments = computed(() => solarAssignments(projects.value, metric.value))
 const selectedId = ref<string | null>(null)
 const view = ref<'universe' | 'projects'>('universe')
@@ -278,8 +278,8 @@ onBeforeUnmount(() => {
                 </h2>
                 <span
                   class="list-sort"
-                  title="DAU, highest first; ties and projects without visitors use the latest deployment or commit"
-                  >DAU ↓ · Updated</span
+                  title="30-day visitors, highest first; ties and projects without visitors use the latest deployment or commit"
+                  >{{ metricLabels.mau }} ↓ · Updated</span
                 >
               </div>
               <label class="search-field"
@@ -324,15 +324,15 @@ onBeforeUnmount(() => {
                   /><span class="project-row-text"
                     ><strong>{{ project.name }}</strong
                     ><span
-                      class="project-row-dau"
+                      class="project-row-traffic"
                       :title="
                         project.analytics.source === 'mock'
-                          ? 'Sample DAU'
-                          : project.analytics.dau === null
+                          ? 'Sample MAU'
+                          : project.analytics.mau === null
                             ? project.analytics.warnings?.[0] || 'Analytics unavailable'
-                            : 'Visitors today · UTC'
+                            : 'Sum of daily visitors over 30 UTC calendar days, including today'
                       "
-                      >{{ formatNumber(project.analytics.dau) }} DAU</span
+                      >{{ formatNumber(project.analytics.mau) }} {{ metricLabels.mau }}</span
                     ></span
                   ><span
                     class="row-status"
@@ -391,11 +391,11 @@ onBeforeUnmount(() => {
                   <span
                     :title="
                       metric === 'deployments'
-                        ? 'Fixed body sizes, assigned by DAU then recent deployment or commit. Glow follows DAU; a ripple marks a successful deployment in the last 24 hours.'
-                        : 'Fixed body sizes, assigned by DAU then recent deployment or commit. More visitors create a stronger glow; a ripple marks a successful deployment in the last 24 hours.'
+                        ? 'Fixed body sizes, assigned by 30-day visitors then recent deployment or commit. Glow follows DAU; a ripple marks a successful deployment in the last 24 hours.'
+                        : 'Fixed body sizes, assigned by 30-day visitors then recent deployment or commit. More visitors create a stronger glow; a ripple marks a successful deployment in the last 24 hours.'
                     "
                   >
-                    DAU / recency · Glow:
+                    {{ metricLabels.mau }} / recency · Glow:
                     {{ metric === 'deployments' ? 'DAU' : metricLabels[metric] }}
                   </span>
                 </div>

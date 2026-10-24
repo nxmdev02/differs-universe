@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { ProjectViewModel } from '../../shared/types/project'
 
-test('real analytics sort by DAU, distinguish missing from zero and label the 30-day sum honestly', async ({
+test('real analytics sort by 30-day traffic, distinguish missing from zero and label the 30-day sum honestly', async ({
   page,
   request,
 }) => {
@@ -36,13 +36,13 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
     'data-project-id',
     payload.projects[0].id,
   )
-  await expect(page.locator('.project-row').nth(1)).toContainText('— DAU')
-  await expect(page.locator('.project-row').nth(2)).toContainText('0 DAU')
+  await expect(page.locator('.project-row').nth(1)).toContainText('— 30D')
+  await expect(page.locator('.project-row').nth(2)).toContainText('0 30D')
   await expect(page.locator('.overview-audience')).toContainText('12')
   await expect(page.locator('.overview-audience')).toContainText('partial')
   await expect(page.locator('.metric-controls')).not.toContainText('sample')
   await expect(page.locator('.metric-switch button')).toHaveText(['30D', 'DAU', 'Deployments'])
-  await expect(page.getByRole('button', { name: 'DAU', exact: true })).toHaveAttribute(
+  await expect(page.getByRole('button', { name: '30D', exact: true })).toHaveAttribute(
     'aria-pressed',
     'true',
   )
@@ -63,7 +63,7 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
   )
   const glow = Number(await active.getAttribute('data-glow'))
   expect(glow).toBeGreaterThan(0)
-  expect(glow).toBeLessThan(0.75)
+  expect(glow).toBeLessThan(1)
   const identities = await page
     .locator('.planet-target')
     .evaluateAll((elements) =>
@@ -74,10 +74,13 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
         ]),
       ),
     )
-  await page.getByRole('button', { name: '30D', exact: true }).click()
+  await expect(active).toHaveAttribute('aria-label', /31 30D/)
+  await expect(page.locator('.list-sort')).toHaveText('30D ↓ · Updated')
+  await expect(page.locator('.scene-caption')).toContainText('30D / recency')
+  await page.getByRole('button', { name: 'DAU', exact: true }).click()
   await expect(page.locator(`[data-planet-id="${payload.projects[1].id}"]`)).toHaveAttribute(
     'aria-label',
-    /31 30D/,
+    /12 DAU/,
   )
   await expect(page.locator(`[data-planet-id="${payload.projects[0].id}"]`)).toHaveAttribute(
     'aria-label',
@@ -100,7 +103,7 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
       ),
     ),
   ).toEqual(identities)
-  expect(Number(await active.getAttribute('data-glow'))).toBeGreaterThan(glow)
+  expect(Number(await active.getAttribute('data-glow'))).toBeLessThan(glow)
   await page.locator(`[data-planet-id="${payload.projects[0].id}"]`).hover()
   await expect(page.locator('.preview-mapping')).toHaveText([
     `${identities[payload.projects[0].id].body[0].toUpperCase()}${identities[payload.projects[0].id].body.slice(1)} · recent activity`,

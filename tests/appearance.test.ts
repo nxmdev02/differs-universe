@@ -28,7 +28,7 @@ test('comets start exactly at 90 days and a newer commit keeps a project active'
   assert.equal(projectActivity(project, now).dormant, false)
 })
 
-test('DAU assigns descending solar sizes; quiet and unmeasured projects use latest activity', () => {
+test('30-day traffic assigns descending solar sizes; quiet and unmeasured projects use latest activity', () => {
   const now = Date.parse('2026-10-21T12:00:00Z')
   const projects = Array.from({ length: 11 }, (_, index) => ({
     ...structuredClone(mockProjects()[0]!),
@@ -42,8 +42,8 @@ test('DAU assigns descending solar sizes; quiet and unmeasured projects use late
     },
     analytics: {
       source: 'real' as const,
-      dau: index === 0 ? null : index === 1 ? 5 : index === 2 ? 10 : 0,
-      mau: index * 100,
+      dau: index * 100,
+      mau: index === 0 ? null : index === 1 ? 5 : index === 2 ? 10 : 0,
       growthRate: null,
     },
   }))
@@ -53,7 +53,7 @@ test('DAU assigns descending solar sizes; quiet and unmeasured projects use late
     sortProjectsByTraffic(projects).map((p) => p.id),
     [2, 1, 0, 3, 4, 5, 6, 7, 8, 10, 9].map((i) => `rank-${i}`),
   )
-  const original = solarAssignments(projects, 'dau', now)
+  const original = solarAssignments(projects, 'mau', now)
   assert.deepEqual(
     [2, 1, 0, 3, 4, 5, 6, 7].map((i) => original[`rank-${i}`]!.kind),
     SOLAR_BODIES.map((b) => b.kind),
@@ -71,7 +71,7 @@ test('DAU assigns descending solar sizes; quiet and unmeasured projects use late
       )
     }
   }
-  projects[0]!.analytics.dau = 20
+  projects[0]!.analytics.mau = 20
   assert.equal(solarAssignments(projects, 'dau', now)['rank-0']!.kind, 'jupiter')
   projects[10]!.deployment.createdAt = new Date(now).toISOString()
   assert.notEqual(solarAssignments(projects, 'dau', now)['rank-10']!.kind, 'comet')
@@ -84,7 +84,7 @@ test('zero traffic uses newest deployment or commit; missing dates sort last and
       ...project,
       name: `project-${index}`,
       github: null as typeof project.github,
-      analytics: { ...project.analytics, dau: index === 0 ? null : 0 },
+      analytics: { ...project.analytics, mau: index === 0 ? null : 0 },
       deployment: {
         ...project.deployment,
         createdAt: index === 3 ? null : `2026-10-${20 - index}T12:00:00Z`,
@@ -104,7 +104,7 @@ test('zero traffic uses newest deployment or commit; missing dates sort last and
     sortProjectsByTraffic([...projects].reverse()).map((p) => p.name),
     projects.map((p) => p.name),
   )
-  assert.equal(projects[0]!.analytics.dau, null)
+  assert.equal(projects[0]!.analytics.mau, null)
 })
 test('traffic glow is absolute, bounded and distinct from missing analytics', () => {
   const project = structuredClone(mockProjects()[0]!)

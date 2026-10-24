@@ -54,7 +54,7 @@ watch(
       <span class="preview-mapping">{{
         appearance.kind === 'comet'
           ? '90+ days without known activity'
-          : `${appearance.label} · ${(project.analytics.dau ?? 0) > 0 ? 'DAU priority' : 'recent activity'}`
+          : `${appearance.label} · ${(project.analytics.mau ?? 0) > 0 ? `${metricLabel(project, 'mau')} priority` : 'recent activity'}`
       }}</span>
       <p>
         {{ metricText(project, metric) }} {{ metricLabel(project, metric)
