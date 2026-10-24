@@ -53,7 +53,7 @@ Activity / Deploys 전체 화면은 비활성입니다. 프로젝트별 활동·
 `DATA_MODE=real`에서는 기존 Vercel 토큰으로 [Web Analytics API](https://vercel.com/docs/analytics/web-analytics-api)의 `visits/aggregate`를 조회합니다. 각 프로젝트의 Vercel → Analytics → Enable과 분석 스크립트 배포가 필요합니다. 추가 DB나 토큰은 필요하지 않습니다.
 
 - DAU는 **UTC 오늘 00:00부터 조회 시각까지의 production 방문자**입니다. 날짜는 KST 09:00에 바뀝니다. 로그인 사용자 수가 아닙니다.
-- `30d visitors`는 오늘을 포함한 30개 UTC 날짜의 일별 방문자 합계입니다. [Vercel 방문자 세션은 24시간 후 폐기](https://vercel.com/docs/analytics/privacy-policy)되므로 월간 중복 제거 사용자 수(MAU)로 부르지 않습니다. 기존 내부 `mau` 필드는 호환성을 위해 유지하며 실제 화면 라벨은 변경했습니다.
+- `30D`는 오늘을 포함한 30개 UTC 날짜의 일별 방문자 합계입니다. [Vercel 방문자 세션은 24시간 후 폐기](https://vercel.com/docs/analytics/privacy-policy)되므로 월간 중복 제거 사용자 수(MAU)로 부르지 않습니다. 기존 내부 `mau` 필드는 호환성을 위해 유지합니다. 실제 화면의 지표 탭은 `30D → DAU → Deployments` 순서이며, 기본 선택과 프로젝트 정렬·행성 배정 기준은 DAU입니다.
 - 프로젝트 간 방문자도 중복 제거하지 않습니다. 상단은 조회 가능한 프로젝트 합계이며, 실패 프로젝트가 있으면 partial로 표시합니다.
 - 조회 성공 후 방문 기록이 없으면 `0`, 비활성화·권한·요금제·속도 제한·네트워크 오류는 `null` 및 화면 `—`로 표시합니다. 실제 모드에서 샘플 값으로 대체하지 않습니다. 30일 조회 실패 시에도 오늘 조회는 유지합니다.
 - 서버 캐시 및 화면 동기화는 60초입니다. 오늘/30일 범위를 별도 요청하며 production 환경만 집계합니다. 실제 월간 증감률은 계산하지 않고 숨깁니다.

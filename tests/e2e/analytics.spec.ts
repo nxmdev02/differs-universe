@@ -41,6 +41,11 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
   await expect(page.locator('.overview-audience')).toContainText('12')
   await expect(page.locator('.overview-audience')).toContainText('partial')
   await expect(page.locator('.metric-controls')).not.toContainText('sample')
+  await expect(page.locator('.metric-switch button')).toHaveText(['30D', 'DAU', 'Deployments'])
+  await expect(page.getByRole('button', { name: 'DAU', exact: true })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  )
   await expect(page.locator('.planet-target[data-body="moon"]')).toHaveCount(0)
   await expect(page.locator(`[data-planet-id="${payload.projects[0].id}"]`)).toHaveAttribute(
     'data-glow',
@@ -69,10 +74,10 @@ test('real analytics sort by DAU, distinguish missing from zero and label the 30
         ]),
       ),
     )
-  await page.getByRole('button', { name: '30d visitors', exact: true }).click()
+  await page.getByRole('button', { name: '30D', exact: true }).click()
   await expect(page.locator(`[data-planet-id="${payload.projects[1].id}"]`)).toHaveAttribute(
     'aria-label',
-    /31 30d visitors/,
+    /31 30D/,
   )
   await expect(page.locator(`[data-planet-id="${payload.projects[0].id}"]`)).toHaveAttribute(
     'aria-label',

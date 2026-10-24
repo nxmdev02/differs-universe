@@ -62,8 +62,8 @@ const cometCount = computed(
   () => projects.value.filter((project) => projectActivity(project).dormant).length,
 )
 const metricLabels = computed(() => ({
+  mau: data.value?.mode === 'real' ? '30D' : 'MAU',
   dau: 'DAU',
-  mau: data.value?.mode === 'real' ? '30d visitors' : 'MAU',
   deployments: 'Deployments',
 }))
 const sampleMetric = computed(() =>

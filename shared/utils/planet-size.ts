@@ -21,9 +21,7 @@ export function metricAvailable(project: ProjectViewModel, metric: Metric) {
     : project.analytics[metric] !== null
 }
 export function metricLabel(project: ProjectViewModel, metric: Metric) {
-  return metric === 'mau' && project.analytics.source === 'real'
-    ? '30d visitors'
-    : metric.toUpperCase()
+  return metric === 'mau' && project.analytics.source === 'real' ? '30D' : metric.toUpperCase()
 }
 export function metricText(project: ProjectViewModel, metric: Metric) {
   return metricAvailable(project, metric) ? compactNumber(metricValue(project, metric)) : '—'
