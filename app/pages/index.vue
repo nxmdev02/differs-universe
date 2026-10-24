@@ -47,13 +47,17 @@ const filtered = computed(() =>
   ),
 )
 const selected = computed(() => projects.value.find((project) => project.id === selectedId.value))
-const totalDau = computed(() =>
-  projects.value.some((project) => project.analytics.dau !== null)
-    ? projects.value.reduce((total, project) => total + (project.analytics.dau ?? 0), 0)
+const totalMetric = computed(() =>
+  projects.value.some((project) => metricAvailable(project, metric.value))
+    ? projects.value.reduce(
+        (total, project) =>
+          total + (metricAvailable(project, metric.value) ? metricValue(project, metric.value) : 0),
+        0,
+      )
     : null,
 )
-const missingDau = computed(
-  () => projects.value.filter((project) => project.analytics.dau === null).length,
+const missingMetric = computed(
+  () => projects.value.filter((project) => !metricAvailable(project, metric.value)).length,
 )
 const readyCount = computed(
   () => projects.value.filter((project) => project.deployment.status === 'READY').length,
@@ -72,6 +76,26 @@ const sampleMetric = computed(() =>
       ? project.deployments30d.source === 'mock'
       : project.analytics.source === 'mock',
   ),
+)
+const overviewLabel = computed(() => {
+  const label =
+    metric.value === 'deployments'
+      ? 'deployments · 30 days'
+      : data.value?.mode === 'real'
+        ? metric.value === 'mau'
+          ? 'visitors · 30 days · UTC'
+          : 'visitors today · UTC'
+        : metric.value === 'mau'
+          ? 'monthly active users'
+          : 'daily active users'
+  return `${label}${sampleMetric.value ? ' · sample' : ''}${missingMetric.value ? ' · partial' : ''}`
+})
+const overviewTitle = computed(() =>
+  metric.value === 'deployments'
+    ? 'Sum of deployments over the last 30 days across all projects.'
+    : metric.value === 'mau'
+      ? 'Sum of 30-day visitors across all projects (UTC); visitors are not deduplicated across days or projects.'
+      : "Sum of today's visitors across all projects (UTC); visitors are not deduplicated across projects.",
 )
 function selectProject(project: ProjectViewModel) {
   selectedId.value = project.id
@@ -201,16 +225,12 @@ onBeforeUnmount(() => {
             <i class="ready-dot" /><strong>{{ readyCount }}</strong
             ><span>ready</span>
           </div>
-          <div
-            class="overview-audience"
-            title="Sum of today's visitors across projects (UTC); visitors are not deduplicated across projects."
-          >
-            <AppIcon name="activity" :size="14" /><strong>{{ compactNumber(totalDau) }}</strong
-            ><span>{{
-              data?.mode === 'real'
-                ? `visitors today · UTC${missingDau ? ' · partial' : ''}`
-                : 'daily active users · sample'
-            }}</span>
+          <div class="overview-audience" :title="overviewTitle" aria-live="polite">
+            <AppIcon
+              :name="metric === 'deployments' ? 'layers' : 'activity'"
+              :size="14"
+            /><strong>{{ compactNumber(totalMetric) }}</strong
+            ><span>{{ overviewLabel }}</span>
           </div>
         </div>
         <div

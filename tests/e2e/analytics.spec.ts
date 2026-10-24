@@ -38,7 +38,8 @@ test('real analytics sort by 30-day traffic, distinguish missing from zero and l
   )
   await expect(page.locator('.project-row').nth(1)).toContainText('— 30D')
   await expect(page.locator('.project-row').nth(2)).toContainText('0 30D')
-  await expect(page.locator('.overview-audience')).toContainText('12')
+  await expect(page.locator('.overview-audience strong')).toHaveText('31')
+  await expect(page.locator('.overview-audience')).toContainText('visitors · 30 days · UTC')
   await expect(page.locator('.overview-audience')).toContainText('partial')
   await expect(page.locator('.metric-controls')).not.toContainText('sample')
   await expect(page.locator('.metric-switch button')).toHaveText(['30D', 'DAU', 'Deployments'])
@@ -78,6 +79,8 @@ test('real analytics sort by 30-day traffic, distinguish missing from zero and l
   await expect(page.locator('.list-sort')).toHaveText('30D ↓ · Updated')
   await expect(page.locator('.scene-caption')).toContainText('30D / recency')
   await page.getByRole('button', { name: 'DAU', exact: true }).click()
+  await expect(page.locator('.overview-audience strong')).toHaveText('12')
+  await expect(page.locator('.overview-audience')).toContainText('visitors today · UTC')
   await expect(page.locator(`[data-planet-id="${payload.projects[1].id}"]`)).toHaveAttribute(
     'aria-label',
     /12 DAU/,
@@ -118,4 +121,55 @@ test('real analytics sort by 30-day traffic, distinguish missing from zero and l
   await expect(panel.locator('.audience-grid strong')).toHaveText(['—', '—'])
   await expect(panel.locator('.growth-note')).toHaveCount(0)
   await expect(panel).not.toContainText('DEMO DATA')
+})
+
+test('overview totals follow each tab across all projects and handle unavailable metrics', async ({
+  page,
+  request,
+}) => {
+  const payload = await (await request.get('/api/projects')).json()
+  payload.mode = 'real'
+  payload.projects.forEach((project: ProjectViewModel, index: number) => {
+    project.analytics = {
+      source: 'real',
+      dau: index === 0 ? 3 : index === 1 ? 7 : 0,
+      mau: index === 0 ? null : index === 1 ? 20 : 0,
+      growthRate: null,
+    }
+    project.deployments30d = {
+      source: 'real',
+      count: index === 0 ? 99 : index === 1 ? 4 : index === 2 ? 6 : 0,
+      available: index !== 0,
+    }
+  })
+  await page.goto('/')
+  await expect(page.locator('.planet-target')).toHaveCount(8)
+  await page.route('**/api/projects', (route) => route.fulfill({ json: payload }))
+  await page.getByRole('button', { name: 'Sync projects' }).click()
+  const overview = page.locator('.overview-audience')
+  await expect(overview.locator('strong')).toHaveText('20')
+  await expect(overview).toContainText('visitors · 30 days · UTC · partial')
+  await page.getByRole('searchbox', { name: 'Search projects' }).fill('no-matching-project')
+  await expect(page.locator('.project-row')).toHaveCount(0)
+  await expect(overview.locator('strong')).toHaveText('20')
+  await page.getByRole('button', { name: 'DAU', exact: true }).click()
+  await expect(overview.locator('strong')).toHaveText('10')
+  await expect(overview).toContainText('visitors today · UTC')
+  await expect(overview).not.toContainText('partial')
+  await page.getByRole('button', { name: 'Deployments', exact: true }).click()
+  await expect(overview.locator('strong')).toHaveText('10')
+  await expect(overview).toContainText('deployments · 30 days · partial')
+  await expect(overview).not.toContainText('visitors')
+  payload.projects.forEach((project: ProjectViewModel) => {
+    project.analytics.dau = 0
+    project.analytics.mau = null
+    project.deployments30d.available = false
+  })
+  await page.getByRole('button', { name: 'Sync projects' }).click()
+  await expect(overview.locator('strong')).toHaveText('—')
+  await page.getByRole('button', { name: '30D', exact: true }).click()
+  await expect(overview.locator('strong')).toHaveText('—')
+  await page.getByRole('button', { name: 'DAU', exact: true }).click()
+  await expect(overview.locator('strong')).toHaveText('0')
+  await expect(overview).not.toContainText('partial')
 })
